@@ -5,14 +5,12 @@ import matplotlib.pyplot as plt
 
 def renderTour(data, tour, colour, size):
     fig, ax = plt.subplots()
-    print("rendering")
     plt.xscale("linear")
     plt.yscale("linear")
     plt.xticks([])
     plt.yticks([])
     ax.axis('equal')
     dataList = data.values.tolist()
-    print(dataList)
     for i in range(len(tour)-1):
         vert = tour[i]
         nextVert = tour[i+1]        
