@@ -11,17 +11,22 @@ class AntSystem:
     ants = []
     tours = []
     nIter = 0
+    nAnts = 0
+    bestTourIndex = -1
+    bestTourDist = 1000000000
+    bestTour = []
+    rho = 0.98
 
-    def __init__ (self, data, nIter):
+    def __init__ (self, data, nAnts, alpha, beta, rho):
         self.edgeWeights.clear()
         self.ants.clear()
         self.loadFile(data)
-        self.nIter = nIter
+        self.nAnts = nAnts
         self.tours.clear()
-        pher = np.ones([self.numVerts, self.numVerts])
-        np.negative(pher)
-        for i in range(nIter):
-            self.ants.append(Ant(self.edgeWeights, pher, self.numVerts))
+        self.pher = np.full((self.numVerts, self.numVerts), float(0.5))
+        self.rho = rho
+        for i in range(nAnts):
+            self.ants.append(Ant(self.edgeWeights,self.pher,self.numVerts, alpha, beta))
 
     def loadFile(self, data):
         self.calcDistances(data)
@@ -43,9 +48,50 @@ class AntSystem:
                 weights.append(math.ceil(dist))
             self.edgeWeights.append(weights)
 
-    def doTours(self):
-        for i in range(self.nIter):
+    def doTours(self, nIter):
+        for i in range(nIter):
             for ant in self.ants:
                 ant.constructTour()
                 self.tours.append(ant.currTour)
+            self.getBestTour()
+            self.bestTour = self.tours[self.bestTourIndex]
+            print(i)
+            print(self.pher)
+            self.updatePher()
+            self.pherDecay()
+            print(self.pher)
+
+            self.tours.clear()
+        
+
+    def getBestTour(self):
+        for i, tour in enumerate(self.tours):
+            dist = self.getTourDist(tour)
+            if dist < self.bestTourDist:
+                self.bestTourDist = dist
+                self.bestTourIndex = i
+                self.bestTourDist = self.bestTourDist
+
+    def getTourDist(self, tour):
+        tourDist = 0
+        for i in range(len(tour)-1):
+            currVert = tour[i]
+            nextVert = tour[i+1]
+            tourDist += self.edgeWeights[currVert][nextVert]
+        tourDist+= self.edgeWeights[tour[-1]][tour[0]]
+        return tourDist
+
+    def updatePher(self):
+        tour = self.bestTour
+        newPher = 1/self.bestTourDist
+        for i in range (len(tour)-1):
+            currVert = tour[i]
+            nextVert = tour[i+1]
+            self.pher[currVert][nextVert] += newPher
+
+    def pherDecay(self):
+        for i,row in enumerate(self.pher):
+            for j,entry in enumerate(row):
+                self.pher[i][j] *= self.rho
+
         

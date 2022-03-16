@@ -1,9 +1,9 @@
-import math
 from operator import index
-from random import randint
+import random
 import pandas as pd
 import streamlit as st
 import numpy as np
+
 
 class Ant:
     currTour = []
@@ -11,18 +11,26 @@ class Ant:
     numVerts = 0
     dist = []
     pher = []
+    alpha = 1
+    beta = 1
 
-    def __init__ (self, dist, pher, numVerts):
-        self.currTour.clear()
-        self.tabu.clear()
+    def __init__ (self, dist, pher, numVerts, alpha, beta):
+        self.alpha = alpha
+        self.beta = beta
         self.numVerts = numVerts
         self.dist = dist
         self.pher = pher
-        self.tabu = ([[False] * numVerts]) * numVerts
+        
+
+    def reset(self):
+        self.currTour.clear()
+        self.tabu.clear()
+        self.tabu = ([[False] * self.numVerts]) * self.numVerts
         
 
     def constructTour(self):
-        first = randint(0, self.numVerts-1)
+        self.reset()
+        first = random.randint(0, self.numVerts-1)
         curr = first
         i = 0
         self.currTour.append(first)
@@ -34,11 +42,12 @@ class Ant:
 
     def selectNext(self, curr):
         weight = []
+        randVal = random.random()
         for i in range(self.numVerts):
             if self.tabu[curr][i] == True or curr == i:
                 weight.append(1000000)
             else:
-                weight.append(self.dist[curr][i] + self.pher[curr][i])
+                weight.append((pow(self.dist[curr][i],self.alpha) + pow(self.pher[curr][i],self.beta))*randVal)
                 
         minVal = min(weight)
         minIndex = weight.index(minVal)
