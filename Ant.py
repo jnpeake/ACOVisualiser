@@ -11,21 +11,22 @@ class Ant:
     numVerts = 0
     dist = []
     pher = []
+    nnList = []
     alpha = 1
     beta = 1
 
-    def __init__ (self, dist, pher, numVerts, alpha, beta):
+    def __init__ (self, dist, pher, numVerts, alpha, beta, nnList):
         self.alpha = alpha
         self.beta = beta
         self.numVerts = numVerts
         self.dist = dist
         self.pher = pher
-        
+        self.nnList = nnList
 
     def reset(self):
         self.currTour.clear()
         self.tabu.clear()
-        self.tabu = ([[False] * self.numVerts]) * self.numVerts
+        self.tabu = [False] * self.numVerts
         
 
     def constructTour(self):
@@ -39,19 +40,55 @@ class Ant:
             self.currTour.append(curr)
             i+=1
         self.currTour.append(first)
+        self.two_opt()
+        return self.currTour
 
     def selectNext(self, curr):
         weight = []
         randVal = random.random()
-        for i in range(self.numVerts):
-            if self.tabu[curr][i] == True or curr == i:
-                weight.append(1000000)
+        validMove = False
+        for i in self.nnList[curr]:
+            if i >= len(self.tabu):
+                print("hmm")
+                print(i)
+                print(len(self.tabu))
+            if self.tabu[i] == True or curr == i:
+                weight.append(-1)
             else:
-                weight.append((pow(self.dist[curr][i],self.alpha) + pow(self.pher[curr][i],self.beta))*randVal)
-                
-        minVal = min(weight)
-        minIndex = weight.index(minVal)
-        self.tabu[curr][minIndex] = True
-        self.tabu[minIndex][curr] = True
-        return minIndex
+                weight.append((pow(self.pher[curr][i],self.alpha) + pow(1/self.dist[curr][i],self.beta))*randVal)
+                validMove = True
+            
+        if validMove == True:
+            maxVal = max(weight)
+            maxIndex = self.nnList[curr][weight.index(maxVal)]
+
+        else:
+            maxIndex = self.selectClosest(curr)
+
+        self.tabu[maxIndex] = True
+        return maxIndex
+
+    def selectClosest(self, index):
+        sortedDist = sorted(self.dist[index])
+        for dist in sortedDist[1:]:
+            if self.tabu[self.dist[index].index(dist)] == False:
+                return self.dist[index].index(dist)
+
+
+    def two_opt(self):
+        best = self.currTour
+        improved = True
+        while improved:
+            improved = False
+            for i in range(1, len(self.currTour) - 2):
+                for j in range(i + 1, len(self.currTour)):
+                    if j - i == 1: continue
+                    if self.cost_change(best[i - 1], best[i], best[j - 1], best[j]) < 0:
+                        best[i:j] = best[j - 1:i - 1:-1]
+                        improved = True
+            self.currTour = best
+        
+
+    def cost_change(self, n1, n2, n3, n4):
+        return self.dist[n1][n3] + self.dist[n2][n4] - self.dist[n1][n2] - self.dist[n3][n4]
 

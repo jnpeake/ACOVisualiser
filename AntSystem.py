@@ -2,7 +2,11 @@ import math
 import pandas as pd
 import streamlit as st
 import numpy as np
+import time
 from Ant import Ant
+import sys
+np.set_printoptions(threshold=sys.maxsize)
+
 
 class AntSystem:
     edgeWeights = []
@@ -10,23 +14,37 @@ class AntSystem:
     numVerts = 0
     ants = []
     tours = []
+    nnList = []
     nIter = 0
     nAnts = 0
+    numNN = 16
     bestTourIndex = -1
     bestTourDist = 1000000000
     bestTour = []
     rho = 0.98
+    greedyLength = 0
+    mmasConst = 0
 
-    def __init__ (self, data, nAnts, alpha, beta, rho):
-        self.edgeWeights.clear()
-        self.ants.clear()
+    def __init__ (self, data, nAnts, alpha, beta, rho, numNN):
+        self.reset()
         self.loadFile(data)
         self.nAnts = nAnts
-        self.tours.clear()
-        self.pher = np.full((self.numVerts, self.numVerts), float(0.5))
         self.rho = rho
+        self.numNN = numNN
+        self.calcNN()
+        self.greedyTour()
+        self.pher = np.full((self.numVerts, self.numVerts), float(1/(self.greedyLength*(1-rho))))
         for i in range(nAnts):
-            self.ants.append(Ant(self.edgeWeights,self.pher,self.numVerts, alpha, beta))
+            self.ants.append(Ant(self.edgeWeights,self.pher,self.numVerts, alpha, beta, self.nnList))
+        a = math.exp(math.log(0.05) / self.numVerts)
+        self.mmasConst = (1 - a) / ((self.numVerts + 1) * a * 0.5)
+    
+    def reset(self):
+        self.edgeWeights.clear()
+        self.pher.clear()
+        self.ants.clear()
+        self.tours.clear()
+        self.bestTour.clear()
 
     def loadFile(self, data):
         self.calcDistances(data)
@@ -47,21 +65,29 @@ class AntSystem:
                 dist = math.sqrt(dist)
                 weights.append(math.ceil(dist))
             self.edgeWeights.append(weights)
+    
+    def calcNN(self):
+        print(self.numNN)
+        for weightList in self.edgeWeights:
+            sortedIndicies = np.argsort(np.array(weightList))
+           
+            self.nnList.append(sortedIndicies[1:self.numNN-1])
 
     def doTours(self, nIter):
+        startTime = time.perf_counter()
         for i in range(nIter):
             for ant in self.ants:
                 ant.constructTour()
                 self.tours.append(ant.currTour)
             self.getBestTour()
             self.bestTour = self.tours[self.bestTourIndex]
-            print(i)
-            print(self.pher)
+            if (i+1)%10 == 0:
+                print(str(i+1) + ": "+ str(self.bestTourDist))
             self.updatePher()
             self.pherDecay()
-            print(self.pher)
-
             self.tours.clear()
+        endTime = time.perf_counter()
+        print(endTime-startTime)
         
 
     def getBestTour(self):
@@ -70,7 +96,7 @@ class AntSystem:
             if dist < self.bestTourDist:
                 self.bestTourDist = dist
                 self.bestTourIndex = i
-                self.bestTourDist = self.bestTourDist
+
 
     def getTourDist(self, tour):
         tourDist = 0
@@ -84,14 +110,22 @@ class AntSystem:
     def updatePher(self):
         tour = self.bestTour
         newPher = 1/self.bestTourDist
+        pherMax = 1/((1-self.rho) * self.bestTourDist)
+        pherMin = pherMax * self.mmasConst
         for i in range (len(tour)-1):
             currVert = tour[i]
             nextVert = tour[i+1]
             self.pher[currVert][nextVert] += newPher
+        self.pher = np.clip(self.pher, pherMin, pherMax)
 
     def pherDecay(self):
-        for i,row in enumerate(self.pher):
-            for j,entry in enumerate(row):
-                self.pher[i][j] *= self.rho
+        self.pher = np.dot(self.pher, self.rho)
+
+    def greedyTour(self):
+        gTour = []
+        for i in range(self.numVerts):
+            gTour.append(i)
+        self.greedyLength = self.getTourDist(gTour)
+
 
         
