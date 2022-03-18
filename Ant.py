@@ -70,9 +70,10 @@ class Ant:
 
     def selectClosest(self, index):
         sortedDist = sorted(self.dist[index])
-        for dist in sortedDist[1:]:
-            if self.tabu[self.dist[index].index(dist)] == False:
-                return self.dist[index].index(dist)
+        sortedIndex = np.argsort(self.dist[index])
+        for i in sortedIndex[1:]:
+            if self.tabu[i] == False:
+                return i
 
 
     def two_opt(self):
