@@ -35,12 +35,12 @@ class Ant:
         curr = first
         i = 0
         self.currTour.append(first)
+        self.tabu[first] = True
         while i < self.numVerts-1:
             curr = self.selectNext(curr)
             self.currTour.append(curr)
             i+=1
         self.currTour.append(first)
-        self.two_opt()
         return self.currTour
 
     def selectNext(self, curr):
@@ -48,11 +48,7 @@ class Ant:
         randVal = random.random()
         validMove = False
         for i in self.nnList[curr]:
-            if i >= len(self.tabu):
-                print("hmm")
-                print(i)
-                print(len(self.tabu))
-            if self.tabu[i] == True or curr == i:
+            if curr == i or self.tabu[i] == True:
                 weight.append(-1)
             else:
                 weight.append((pow(self.pher[curr][i],self.alpha) + pow(1/self.dist[curr][i],self.beta))*randVal)
@@ -76,20 +72,4 @@ class Ant:
                 return i
 
 
-    def two_opt(self):
-        best = self.currTour
-        improved = True
-        while improved:
-            improved = False
-            for i in range(1, len(self.currTour) - 2):
-                for j in range(i + 1, len(self.currTour)):
-                    if j - i == 1: continue
-                    if self.cost_change(best[i - 1], best[i], best[j - 1], best[j]) < 0:
-                        best[i:j] = best[j - 1:i - 1:-1]
-                        improved = True
-            self.currTour = best
-        
-
-    def cost_change(self, n1, n2, n3, n4):
-        return self.dist[n1][n3] + self.dist[n2][n4] - self.dist[n1][n2] - self.dist[n3][n4]
-
+    
