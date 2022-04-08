@@ -1,5 +1,7 @@
+from asyncio.windows_events import NULL
 from logging import PlaceHolder
 from AntSystem import AntSystem
+from multiprocessing import Pool
 
 import string
 import pandas as pd
@@ -19,6 +21,10 @@ parser.add_argument('rho', metavar = 'rho', type = float, help = 'The value of t
 parser.add_argument('numNN', metavar = 'numNN', type = int, help = 'The size of the nearest neighbour list used in the ACO algorithm')
 parser.add_argument('tsp', metavar='tsp',type=str,help='The filename of the TSP to be used')
 
+parser.add_argument('--opt',type=int,help='The optimum value of the used TSP, if known')
+parser.add_argument('--novelty', '-n', action="store_true", help = 'Enables the novelty matrix structure & related behaviours')
+parser.add_argument('--stagnation', '-s',type = int, help = 'The number of iterations without improvement before the ACO is considered to be stagnant')
+
 args = parser.parse_args()
 
 nAnts = args.nAnts
@@ -31,15 +37,28 @@ numNN = args.numNN
 data_raw = ut.open_tsp(args.tsp)
 data = ut.convert_data(data_raw)
 
+f = open ("test1.txt", 'w')
 
-for i in range(args.nExp):
-    antSys = AntSystem(data, nAnts, alpha, beta, rho, numNN)
+def doExperiment():
+    antSys = AntSystem(data, nAnts, alpha, beta, rho, numNN, args.novelty, args.stagnation)
     startTime = time.time()
-    for i in range(nIter):
-        antSys.doTourGen(i)
+    for j in range(nIter):
+        antSys.doTourGen(j)
     endTime = time.time()
+    if(args.opt == NULL):
+        print("BEST TOUR - " + str(antSys.bestTourDist) + " | TIME - " + str(endTime-startTime))
+        return("BEST TOUR - " + str(antSys.bestTourDist) + " | TIME - " + str(endTime-startTime))
+    else:
+        percentage = ((antSys.bestTourDist - args.opt)/ args.opt) * 100
+        print("BEST TOUR - " + str(antSys.bestTourDist) + " | TIME - " + str(endTime-startTime) + " | " + str(percentage) + "% from opt" )
+        return("BEST TOUR - " + str(antSys.bestTourDist) + " | TIME - " + str(endTime-startTime) + " | " + str(percentage) + "% from opt" )
+       
+if __name__ == '__main__':
+    with Pool(2) as p: 
+        for result in p.starmap(doExperiment, [() for _ in range(args.nExp)]):
+            f.write("\n"+result)
+    f.close()
 
-    print("BEST TOUR: " + str(antSys.bestTourDist) + " | TIME: " + str(endTime-startTime))
     
 
 

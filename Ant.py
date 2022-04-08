@@ -14,7 +14,7 @@ class Ant:
     alpha = 1
     beta = 1
 
-    def __init__ (self, dist, pher, numVerts, alpha, beta, nnList, novelty):
+    def __init__ (self, dist, pher, numVerts, alpha, beta, nnList, novelty, noveltyEnabled):
         self.alpha = alpha
         self.beta = beta
         self.numVerts = numVerts
@@ -22,6 +22,7 @@ class Ant:
         self.pher = pher
         self.nnList = nnList
         self.novelty = novelty
+        self.noveltyEnabled = noveltyEnabled
 
     def reset(self):
         self.currTour.clear()
@@ -37,7 +38,7 @@ class Ant:
         self.currTour.append(first)
         self.tabu[first] = True
         while i < self.numVerts-1:
-            if(stagnated == False):
+            if(stagnated == False or self.noveltyEnabled == False):
                 curr = self.selectNext(curr)
             else:
                 curr = self.selectNextStagnated(curr)

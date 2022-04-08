@@ -31,7 +31,7 @@ class AntSystem:
     lineColour = ""
 
 
-    def __init__ (self, data, nAnts, alpha, beta, rho, numNN):
+    def __init__ (self, data, nAnts, alpha, beta, rho, numNN, novelty, stagnantNum):
         self.reset()
         self.loadFile(data)
         self.data = data
@@ -45,8 +45,10 @@ class AntSystem:
         self.iterBestDist = 100000000000
         self.pher = np.full((self.numVerts, self.numVerts), float(1/(self.greedyLength*(1-rho))))
         self.novelty = np.full((self.numVerts, self.numVerts), float(1/(self.greedyLength*(1-rho))))
+        self.noveltyEnabled = novelty
+        self.stagnantNum = stagnantNum
         for i in range(nAnts):
-            self.ants.append(Ant(self.edgeWeights,self.pher,self.numVerts, alpha, beta, self.nnList, self.novelty))
+            self.ants.append(Ant(self.edgeWeights,self.pher,self.numVerts, alpha, beta, self.nnList, self.novelty, self.noveltyEnabled))
         a = math.exp(math.log(0.05) / self.numVerts)
         self.mmasConst = (1 - a) / ((self.numVerts + 1) * a * 0.5)
     
@@ -88,8 +90,11 @@ class AntSystem:
 
     def doTourGen(self, iter):
         for ant in self.ants:
-            if self.lastImproved >= 20:
-                ant.constructTour(True)
+            if self.noveltyEnabled:
+                if self.lastImproved >= self.stagnantNum:
+                    ant.constructTour(True)
+                else:
+                    ant.constructTour(False)
             else:
                 ant.constructTour(False)
             self.tours.append(ant.currTour.copy())
@@ -100,9 +105,10 @@ class AntSystem:
         self.getBestTour()
         self.bestTourDist = self.getTourDist(self.bestTour)
         self.updatePher()
-        self.updateNovelty()
         self.pherDecay()
-        self.noveltyIncrease()
+        if self.noveltyEnabled:           
+            self.updateNovelty()
+            self.noveltyIncrease()
         self.tours.clear()
         self.iterBestTour = []
         self.iterBestDist = 10000000000
