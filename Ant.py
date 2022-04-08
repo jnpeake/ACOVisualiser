@@ -15,13 +15,14 @@ class Ant:
     alpha = 1
     beta = 1
 
-    def __init__ (self, dist, pher, numVerts, alpha, beta, nnList):
+    def __init__ (self, dist, pher, numVerts, alpha, beta, nnList, novelty):
         self.alpha = alpha
         self.beta = beta
         self.numVerts = numVerts
         self.dist = dist
         self.pher = pher
         self.nnList = nnList
+        self.novelty = novelty
 
     def reset(self):
         self.currTour.clear()
@@ -29,7 +30,7 @@ class Ant:
         self.tabu = [False] * self.numVerts
         
 
-    def constructTour(self):
+    def constructTour(self, stagnated):
         self.reset()
         first = random.randint(0, self.numVerts-1)
         curr = first
@@ -37,7 +38,10 @@ class Ant:
         self.currTour.append(first)
         self.tabu[first] = True
         while i < self.numVerts-1:
-            curr = self.selectNext(curr)
+            if(stagnated == False):
+                curr = self.selectNext(curr)
+            else:
+                curr = self.selectNextStagnated(curr)
             self.currTour.append(curr)
             i+=1
         self.currTour.append(first)
@@ -52,6 +56,27 @@ class Ant:
                 weight.append(-1)
             else:
                 weight.append((pow(self.pher[curr][i],self.alpha) + pow(1/self.dist[curr][i],self.beta))*randVal)
+                validMove = True
+            
+        if validMove == True:
+            maxVal = max(weight)
+            maxIndex = self.nnList[curr][weight.index(maxVal)]
+
+        else:
+            maxIndex = self.selectClosest(curr)
+
+        self.tabu[maxIndex] = True
+        return maxIndex
+
+    def selectNextStagnated(self, curr):
+        weight = []
+        randVal = random.random()
+        validMove = False
+        for i in self.nnList[curr]:
+            if curr == i or self.tabu[i] == True:
+                weight.append(-1)
+            else:
+                weight.append((self.novelty[curr][i] + (1/self.dist[curr][i])) * randVal)
                 validMove = True
             
         if validMove == True:

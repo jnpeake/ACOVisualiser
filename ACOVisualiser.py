@@ -2,6 +2,7 @@ from logging import PlaceHolder
 import streamlit as st
 import pandas as pd
 import numpy as np
+import time
 from RenderManager import RenderManager as rm
 import Utility as ut
 from AntSystem import AntSystem
@@ -25,31 +26,36 @@ if st.checkbox("Show raw data"):
     st.subheader("Raw Data")
     st.write(data)
 
-renderManager = rm(marker_colour, line_colour, marker_size)
+renderManager = rm(marker_colour, line_colour, marker_size, data)
 
 
 st.subheader("TSP")
 with st.spinner("Rendering TSP..."):
     st.pyplot(renderManager.renderPlot(data))
 
-antSys = AntSystem(data, nAnts, alpha, beta, rho, numNN, renderManager)
-
 prog_bar = st.progress(0)
 placeholder = st.empty()
 
-for i in range(nIter):
-    antSys.doTourGen()
-    if nIter > 1:
-        prog_bar.progress(i/(nIter-1))
-    if i % 10 == 0:
-        with placeholder.container():
-            col1, col2= st.columns(2)
-            with col1:
-                tourPlaceholder = st.pyplot(renderManager.renderTour(data, antSys.bestTour))
-            with col2:
-                pherPlaceholder = st.pyplot(renderManager.renderPher(data, antSys.pher))
-            print(str(i) + ": "+ str(antSys.bestTourDist))
-    
+
+for i in range(10):
+    antSys = AntSystem(data, nAnts, alpha, beta, rho, numNN, renderManager)
+    startTime = time.time()
+    for i in range(nIter):
+
+        antSys.doTourGen(i)
+        #if nIter > 1:
+        #    prog_bar.progress(i/(nIter-1))
+    # if i % 10 == 0:
+        #    with placeholder.container():
+        #        col1, col2= st.columns(2)
+        #        with col1:
+        #           tourPlaceholder = st.pyplot(renderManager.renderTour(antSys.bestTour))
+        #        with col2:
+        #            pherPlaceholder = st.pyplot(renderManager.renderPher(antSys.pher))
+        #      print(str(i) + ": "+ str(antSys.bestTourDist))
+    endTime = time.time()
+
+    print("BEST TOUR: " + str(antSys.bestTourDist) + " | TIME: " + str(endTime-startTime))
     
 
 st.subheader("Best tour distance: "+ str(antSys.bestTourDist))
