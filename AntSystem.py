@@ -1,8 +1,6 @@
 import math
 import pandas as pd
-import streamlit as st
 import numpy as np
-import RenderManager as rm
 import time
 from Ant import Ant
 import sys
@@ -33,7 +31,7 @@ class AntSystem:
     lineColour = ""
 
 
-    def __init__ (self, data, nAnts, alpha, beta, rho, numNN, rm):
+    def __init__ (self, data, nAnts, alpha, beta, rho, numNN):
         self.reset()
         self.loadFile(data)
         self.data = data
@@ -42,7 +40,6 @@ class AntSystem:
         self.numNN = numNN
         self.calcNN()
         self.greedyTour()
-        self.renderManager = rm
         self.lastImproved = 0
         self.iterBestTour = []
         self.iterBestDist = 100000000000
@@ -84,7 +81,6 @@ class AntSystem:
             self.edgeWeights.append(weights)
     
     def calcNN(self):
-        print(self.numNN)
         for weightList in self.edgeWeights:
             sortedIndicies = np.argsort(np.array(weightList))
            
@@ -117,10 +113,6 @@ class AntSystem:
         if self.iterBestDist < self.bestTourDist:
             self.bestTour = self.iterBestTour.copy()
             self.bestTourDist = self.iterBestDist
-            if(self.lastImproved >= 20):
-                print("NOVELTY IMPROVEMENT")
-            else:
-                print("PHER IMPROVEMENT")
             self.lastImproved = 0
             #print("Original Original: " + str(dist))
 
